@@ -1,0 +1,15 @@
+# Dependency dan hasil build dibuat ulang di dalam image
+node_modules
+dist
+
+# Konfigurasi lokal
+.env
+.env.*
+!.env.example
+
+# Tidak dibutuhkan untuk build
+.vscode
+Dockerfile
+.dockerignore
+README.md
+*.log
