@@ -16,7 +16,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
+        // Tidak memakai factory karena Faker hanya terpasang di lingkungan development,
+        // sedangkan seeder juga dijalankan di image Docker produksi.
+        User::create([
             'name' => 'Admin Futsal',
             'email' => 'admin@futsal.test',
             'password' => 'password',
