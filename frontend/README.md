@@ -1,10 +1,10 @@
 # Frontend Booking Lapangan Futsal (Vue.js)
 
-Frontend Vue 3 + Vite + Axios untuk API Laravel di folder induk (soal nomor 1).
+Frontend Vue 3 + Vite + Axios untuk API Laravel di folder [`backend/`](../backend) (soal nomor 1).
 
 ## Menjalankan
 
-Pastikan API Laravel sudah berjalan (`php artisan serve` di folder induk), lalu:
+Pastikan API Laravel sudah berjalan (`php artisan serve` di folder `backend/`), lalu:
 
 ```bash
 cd frontend
