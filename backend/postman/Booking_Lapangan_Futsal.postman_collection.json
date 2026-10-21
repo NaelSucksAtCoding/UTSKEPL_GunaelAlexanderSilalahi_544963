@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Booking Lapangan Futsal API",
-		"description": "RESTful API Manajemen Booking Lapangan Futsal / Mini Soccer (UTS KEPL - Gunael Alexander Silalahi - 544963).\n\nCara pakai:\n1. Jalankan `php artisan migrate:fresh --seed` lalu `php artisan serve`.\n2. Jalankan request **Auth > Login**. Token otomatis disimpan ke variabel collection `token`.\n3. Semua request lain otomatis memakai Bearer Token `{{token}}`.\n4. **Booking > Tambah Booking** otomatis menyimpan `booking_id` untuk request tampil/ubah/hapus.",
+		"description": "RESTful API Manajemen Booking Lapangan Futsal / Mini Soccer (UTS KEPL - Gunael Alexander Silalahi - 544963).\n\nCara pakai:\n1. Di folder `backend/`, jalankan `php artisan migrate:fresh --seed` lalu `php artisan serve`.\n2. Jalankan request **Auth > Login**. Token otomatis disimpan ke variabel collection `token`.\n3. Semua request lain otomatis memakai Bearer Token `{{token}}`.\n4. **Booking > Tambah Booking** otomatis menyimpan `booking_id` untuk request tampil/ubah/hapus.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
