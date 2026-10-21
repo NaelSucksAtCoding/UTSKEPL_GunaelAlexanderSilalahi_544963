@@ -1,5 +1,7 @@
 # Booking Lapangan Futsal API
 
+[![CI](https://github.com/NaelSucksAtCoding/UTSKEPL_GunaelAlexanderSilalahi_544963/actions/workflows/ci.yml/badge.svg)](https://github.com/NaelSucksAtCoding/UTSKEPL_GunaelAlexanderSilalahi_544963/actions/workflows/ci.yml)
+
 UTS Konstruksi & Evolusi Perangkat Lunak — Gunael Alexander Silalahi (544963)
 
 RESTful API berbasis Laravel untuk manajemen booking lapangan futsal / mini soccer. Autentikasi memakai token Laravel Sanctum.
