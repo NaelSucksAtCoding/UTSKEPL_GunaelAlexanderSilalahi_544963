@@ -67,6 +67,19 @@ Contoh request tambah booking:
 
 Import [postman/Booking_Lapangan_Futsal.postman_collection.json](postman/Booking_Lapangan_Futsal.postman_collection.json) ke Postman. Jalankan **Auth > Login** terlebih dahulu; token otomatis disimpan ke variabel collection dan dipakai oleh request lainnya.
 
+## Frontend (Vue.js)
+
+Frontend ada di folder [frontend/](frontend/). Jalankan API Laravel terlebih dahulu, lalu:
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Buka http://localhost:5173. Alamat API diatur lewat `VITE_API_URL` di `frontend/.env`. Detail ada di [frontend/README.md](frontend/README.md).
+
 ## Testing
 
 ```bash
