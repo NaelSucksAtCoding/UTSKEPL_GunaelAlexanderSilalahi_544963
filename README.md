@@ -68,9 +68,24 @@ Buka http://localhost:8080. Nilai rahasia seperti `APP_KEY` dan `DB_PASSWORD` ti
 
 ## Continuous Integration
 
-Workflow [`ci.yml`](.github/workflows/ci.yml) berjalan pada setiap push dan pull request ke `main` dan `dev`:
+Workflow [`ci.yml`](.github/workflows/ci.yml) berjalan pada setiap push ke `main`, `dev`, dan `feat/**`, serta pull request ke `main` dan `dev`:
 
-| Job | Langkah |
+| Job | Langkah | Berjalan pada |
+|---|---|---|
+| Backend (Laravel API) | `composer install` → `php artisan test` | Semua push dan pull request |
+| Frontend (Vue.js) | `npm ci` → `npm run build` | Semua push dan pull request |
+| Deploy (ghcr.io) | Build image backend dan frontend → uji image (backend dengan MySQL) → unggah ke ghcr.io | **Hanya push ke `main`**, setelah kedua job di atas lulus |
+
+## Continuous Deployment
+
+Job deploy mengunggah dua image ke GitHub Container Registry dengan tag nomor commit (`github.sha`), bukan `latest`:
+
+- `ghcr.io/naelsucksatcoding/uts-pl-544963-backend:<commit-sha>`
+- `ghcr.io/naelsucksatcoding/uts-pl-544963-frontend:<commit-sha>`
+
+Nilai rahasia disimpan di **GitHub Secrets** (Settings → Secrets and variables → Actions), tidak di repository:
+
+| Secret | Dipakai untuk |
 |---|---|
-| Backend (Laravel API) | `composer install` → `php artisan test` |
-| Frontend (Vue.js) | `npm ci` → `npm run build` |
+| `APP_KEY` | Kunci enkripsi Laravel saat menguji image backend |
+| `DB_PASSWORD` | Password MySQL saat menguji image backend |

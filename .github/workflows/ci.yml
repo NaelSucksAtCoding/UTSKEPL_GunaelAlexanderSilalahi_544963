@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, 'feat/**']
   pull_request:
     branches: [main, dev]
 
@@ -63,3 +63,121 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: http://127.0.0.1:8000/api
+
+  deploy:
+    name: Deploy (ghcr.io)
+    # Hanya untuk push ke main. Pull request, dev, dan branch fitur berhenti
+    # setelah job backend dan frontend, sehingga job ini berstatus "skipped".
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    # Database MySQL untuk memastikan image backend benar-benar bisa berjalan
+    # dengan APP_KEY dan DB_PASSWORD dari GitHub Secrets sebelum diunggah.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_DATABASE: futsal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Tentukan nama image (tag = nomor commit)
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "BACKEND_IMAGE=ghcr.io/${OWNER}/uts-pl-544963-backend:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "FRONTEND_IMAGE=ghcr.io/${OWNER}/uts-pl-544963-frontend:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Login ke GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          load: true
+          tags: ${{ env.BACKEND_IMAGE }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build image frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          load: true
+          tags: ${{ env.FRONTEND_IMAGE }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Uji image backend dengan MySQL
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          docker run -d --name backend --network host \
+            -e APP_KEY -e DB_PASSWORD \
+            -e DB_CONNECTION=mysql -e DB_HOST=127.0.0.1 -e DB_PORT=3306 \
+            -e DB_DATABASE=futsal -e DB_USERNAME=root \
+            -e RUN_MIGRATIONS=true -e RUN_SEEDER=true \
+            "$BACKEND_IMAGE"
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1/up > /dev/null && break
+            sleep 2
+          done
+
+          curl -sf http://127.0.0.1/up > /dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/api/bookings)" = "401"
+          curl -sf -X POST http://127.0.0.1/api/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@futsal.test","password":"password"}' | grep -q '"token"'
+          echo "Backend berjalan: migrasi MySQL, login, dan proteksi token berhasil."
+
+      - name: Uji image frontend
+        run: |
+          docker run -d --name frontend -p 8080:80 "$FRONTEND_IMAGE"
+          sleep 2
+          curl -sf http://127.0.0.1:8080/ | grep -q '<div id="app">'
+          echo "Frontend berjalan dan menyajikan aplikasi Vue."
+
+      - name: Log container jika gagal
+        if: failure()
+        run: |
+          docker logs backend || true
+          docker logs frontend || true
+
+      - name: Unggah image ke ghcr.io
+        run: |
+          docker push "$BACKEND_IMAGE"
+          docker push "$FRONTEND_IMAGE"
+
+      - name: Ringkasan
+        run: |
+          {
+            echo "### Image terunggah"
+            echo "- \`$BACKEND_IMAGE\`"
+            echo "- \`$FRONTEND_IMAGE\`"
+          } >> "$GITHUB_STEP_SUMMARY"
