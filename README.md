@@ -12,9 +12,35 @@ Sistem manajemen booking lapangan futsal / mini soccer, terdiri dari RESTful API
 |---|---|
 | [`backend/`](backend) | RESTful API Laravel + Sanctum, feature test, dan [Postman collection](backend/postman/Booking_Lapangan_Futsal.postman_collection.json) |
 | [`frontend/`](frontend) | Aplikasi Vue.js (Vite + Axios) yang memakai API backend |
-| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions: test backend dan build frontend |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions: test backend, build frontend, dan deploy ke ghcr.io |
+| [`docker-compose.yml`](docker-compose.yml) | Menjalankan seluruh sistem (MySQL, backend, frontend) dengan satu perintah |
 
-## Menjalankan
+## Menjalankan dengan Docker Compose
+
+```bash
+cp .env.example .env     # lalu isi APP_KEY, DB_PASSWORD, dan DB_ROOT_PASSWORD
+docker compose up -d --build
+```
+
+Buka http://localhost:8080 dan login dengan `admin@futsal.test` / `password`. API juga bisa diakses langsung di http://localhost:8000/api (misalnya dari Postman).
+
+| Service | Image | Keterangan |
+|---|---|---|
+| `db` | `mysql:8.4` | Data disimpan di named volume `db_data` |
+| `backend` | `backend/Dockerfile` | Terhubung ke database lewat nama service `db` (`DB_HOST=db`); migrasi dan seeder dijalankan otomatis saat start |
+| `frontend` | `frontend/Dockerfile` | Nginx menyajikan Vue dan meneruskan request `/api` ke service `backend` |
+
+Alur data: browser → `frontend` (Nginx, `/api`) → `backend` (Laravel) → `db` (MySQL). Semua koneksi antar-container memakai nama service di jaringan Docker Compose, bukan alamat IP laptop.
+
+Kredensial dibaca dari berkas `.env` di akar repository, yang tidak ikut di-commit. Contohnya ada di [`.env.example`](.env.example). `APP_KEY` dapat dibuat dengan:
+
+```bash
+php -r "echo 'base64:'.base64_encode(random_bytes(32));"
+```
+
+Menghentikan sistem tanpa menghapus data: `docker compose down`. Data tetap ada setelah `docker compose up -d` dijalankan lagi. Untuk menghapus data sekaligus: `docker compose down -v`.
+
+## Menjalankan tanpa Docker
 
 **Backend** (terminal 1):
 
@@ -40,7 +66,7 @@ Buka http://localhost:5173 dan login dengan `admin@futsal.test` / `password`.
 
 Dokumentasi lengkap: [backend/README.md](backend/README.md) dan [frontend/README.md](frontend/README.md).
 
-## Docker
+## Dockerfile
 
 | Berkas | Isi |
 |---|---|
@@ -48,17 +74,7 @@ Dokumentasi lengkap: [backend/README.md](backend/README.md) dan [frontend/README
 | [`frontend/Dockerfile`](frontend/Dockerfile) | Multi-stage: Node.js membangun aplikasi, Nginx menyajikan hasil build (tanpa `node_modules`) |
 | `backend/.dockerignore`, `frontend/.dockerignore` | Mengecualikan dependency, `.env`, database lokal, dan berkas yang tidak dibutuhkan |
 
-Build dan jalankan:
-
-```bash
-docker build -t futsal-backend backend
-docker build -t futsal-frontend --build-arg VITE_API_URL=http://localhost:8000/api frontend
-
-docker run -d -p 8000:80 -e APP_KEY=<app-key> -e RUN_MIGRATIONS=true -e RUN_SEEDER=true futsal-backend
-docker run -d -p 8080:80 futsal-frontend
-```
-
-Buka http://localhost:8080. Nilai rahasia seperti `APP_KEY` dan `DB_PASSWORD` tidak ditulis di Dockerfile, melainkan diberikan lewat environment variable saat container dijalankan. `APP_KEY` bisa dibuat dengan `php artisan key:generate --show` di folder `backend/`.
+Nilai rahasia seperti `APP_KEY` dan `DB_PASSWORD` tidak ditulis di Dockerfile, melainkan diberikan lewat environment variable saat container dijalankan (dari `.env` pada Docker Compose, atau dari GitHub Secrets pada job deploy).
 
 ## Alur Kerja Git
 
