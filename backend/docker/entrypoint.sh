@@ -24,6 +24,4 @@ fi
 php artisan config:cache
 php artisan route:cache
 
-chown -R www-data:www-data storage bootstrap/cache database
-
 exec "$@"

@@ -1,18 +1,14 @@
-# Image backend Laravel (PHP 8.3 + Apache).
+# Image backend Laravel dengan FrankenPHP sebagai server aplikasi.
 # Tidak ada nilai rahasia di file ini: APP_KEY, DB_PASSWORD, dll. diberikan
 # lewat environment variable saat container dijalankan.
-FROM php:8.3.35-apache-bookworm
+FROM dunglas/frankenphp:1.9.1-php8.3.26-bookworm
 
-# Ekstensi PHP yang dibutuhkan dan mod_rewrite untuk routing Laravel.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends unzip \
-    && docker-php-ext-install pdo_mysql opcache \
-    && a2enmod rewrite \
-    && rm -rf /var/lib/apt/lists/*
+# Ekstensi PHP yang dibutuhkan (OPcache dan pdo_sqlite sudah tersedia di image dasar).
+RUN install-php-extensions pdo_mysql zip
 
 COPY --from=composer:2.9.2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
+WORKDIR /app
 
 # Salin composer.json dan composer.lock lebih dulu, lalu pasang dependency.
 # Lapisan ini hanya dibangun ulang jika kedua file tersebut berubah,
@@ -22,10 +18,9 @@ RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --no-
 
 # Baru setelah itu salin kode aplikasi.
 COPY . .
-RUN composer dump-autoload --no-dev --optimize \
-    && chown -R www-data:www-data storage bootstrap/cache database
+RUN composer dump-autoload --no-dev --optimize
 
-COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/Caddyfile /etc/frankenphp/Caddyfile
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN sed -i 's/\r$//' /usr/local/bin/entrypoint && chmod +x /usr/local/bin/entrypoint
 
@@ -37,4 +32,4 @@ ENV APP_ENV=production \
 EXPOSE 80
 
 ENTRYPOINT ["entrypoint"]
-CMD ["apache2-foreground"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
