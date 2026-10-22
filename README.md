@@ -27,7 +27,7 @@ Buka http://localhost:8080 dan login dengan `admin@futsal.test` / `password`. AP
 | Service | Image | Keterangan |
 |---|---|---|
 | `db` | `mysql:8.4` | Data disimpan di named volume `db_data` |
-| `backend` | `backend/Dockerfile` | Terhubung ke database lewat nama service `db` (`DB_HOST=db`); migrasi dan seeder dijalankan otomatis saat start |
+| `backend` | `backend/Dockerfile` | Laravel dilayani FrankenPHP. Terhubung ke database lewat nama service `db` (`DB_HOST=db`); migrasi dan seeder dijalankan otomatis saat start |
 | `frontend` | `frontend/Dockerfile` | Nginx menyajikan Vue dan meneruskan request `/api` ke service `backend` |
 
 Alur data: browser → `frontend` (Nginx, `/api`) → `backend` (Laravel) → `db` (MySQL). Semua koneksi antar-container memakai nama service di jaringan Docker Compose, bukan alamat IP laptop.
@@ -39,6 +39,18 @@ php -r "echo 'base64:'.base64_encode(random_bytes(32));"
 ```
 
 Menghentikan sistem tanpa menghapus data: `docker compose down`. Data tetap ada setelah `docker compose up -d` dijalankan lagi. Untuk menghapus data sekaligus: `docker compose down -v`.
+
+### FrankenPHP
+
+Backend dijalankan dengan [FrankenPHP](https://frankenphp.dev) (`dunglas/frankenphp:1.9.1-php8.3.26-bookworm`), server aplikasi PHP yang dibangun di atas web server Caddy, menggantikan `php artisan serve` maupun PHP-FPM dengan Nginx. Konfigurasinya ada di [`backend/docker/Caddyfile`](backend/docker/Caddyfile), dengan access log aktif sehingga setiap request tercatat di log container.
+
+Bukti request dilayani FrankenPHP:
+
+```bash
+docker compose logs backend | grep "FrankenPHP started"   # FrankenPHP aktif beserta versi PHP
+docker compose logs backend | grep "handled request"      # access log setiap request
+curl -I http://localhost:8000/api/bookings                # header "Server: Caddy" dan "X-Powered-By: PHP/8.3.26"
+```
 
 ## Menjalankan tanpa Docker
 
@@ -70,7 +82,7 @@ Dokumentasi lengkap: [backend/README.md](backend/README.md) dan [frontend/README
 
 | Berkas | Isi |
 |---|---|
-| [`backend/Dockerfile`](backend/Dockerfile) | PHP 8.3 + Apache. `composer.json` dan `composer.lock` disalin dan dipasang sebelum kode aplikasi supaya cache lapisan bekerja |
+| [`backend/Dockerfile`](backend/Dockerfile) | FrankenPHP 1.9.1 (PHP 8.3.26). `composer.json` dan `composer.lock` disalin dan dipasang sebelum kode aplikasi supaya cache lapisan bekerja |
 | [`frontend/Dockerfile`](frontend/Dockerfile) | Multi-stage: Node.js membangun aplikasi, Nginx menyajikan hasil build (tanpa `node_modules`) |
 | `backend/.dockerignore`, `frontend/.dockerignore` | Mengecualikan dependency, `.env`, database lokal, dan berkas yang tidak dibutuhkan |
 
