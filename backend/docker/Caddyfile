@@ -1,0 +1,23 @@
+# Konfigurasi FrankenPHP (dibangun di atas web server Caddy).
+# https://frankenphp.dev/docs/config
+
+{
+	skip_install_trust
+	frankenphp
+}
+
+# HTTP biasa di port 80; HTTPS ditangani di luar container.
+:80 {
+	# Access log ke stdout, sehingga setiap request yang dilayani FrankenPHP
+	# terlihat di "docker compose logs backend".
+	log {
+		output stdout
+		format json
+	}
+
+	root public/
+	encode zstd br gzip
+
+	# Meneruskan request ke public/index.php milik Laravel.
+	php_server
+}
