@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+if [ -z "$APP_KEY" ]; then
+    echo "APP_KEY belum diatur. Berikan lewat environment variable (misalnya di berkas .env Docker Compose)." >&2
+    exit 1
+fi
+
 # Siapkan file database jika memakai SQLite (default Laravel).
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ] && [ -z "$DB_DATABASE" ]; then
     touch database/database.sqlite
