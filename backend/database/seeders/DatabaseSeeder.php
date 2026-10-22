@@ -16,6 +16,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Container backend menjalankan seeder setiap kali start. Data contoh hanya
+        // diisi sekali, supaya data yang sudah diubah atau dihapus tidak kembali.
+        if (User::query()->exists()) {
+            $this->command?->info('Database sudah berisi data, seeder dilewati.');
+
+            return;
+        }
+
         // Tidak memakai factory karena Faker hanya terpasang di lingkungan development,
         // sedangkan seeder juga dijalankan di image Docker produksi.
         User::create([

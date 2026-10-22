@@ -8,8 +8,9 @@ RUN npm ci
 
 COPY . .
 
-# Alamat API ditentukan saat build (bukan nilai rahasia).
-ARG VITE_API_URL=http://localhost:8000/api
+# Alamat API ditentukan saat build (bukan nilai rahasia). Default /api:
+# browser memanggil Nginx di container ini, lalu Nginx meneruskan ke backend.
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
